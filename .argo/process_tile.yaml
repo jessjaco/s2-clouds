@@ -1,0 +1,86 @@
+kind: Workflow
+metadata:
+  generateName: ocm
+  namespace: argo
+spec:
+  entrypoint: loop-map-ocm
+  serviceAccountName: open-data-bucket-writer
+  podGC:
+    strategy: OnPodSuccess
+    deleteDelayDuration: 600s
+  parallelism: 100
+  activeDeadlineSeconds: 36000 
+  tolerations:
+  - key: digitalearthpacific.org/node-purpose
+    operator: Equal
+    value: argo
+    effect: NoSchedule
+  arguments:
+    parameters:
+    - name: image-tag
+      value: "0.1.0dev1"
+  templates:
+  - name: loop-map-ocm
+    retryStrategy:
+      limit: "2"
+      retryPolicy: "Always"
+    dag:
+      tasks:
+        - name: generate-ids
+          template: generate
+          arguments:
+            parameters:
+              - name: cell
+                value: "60KXF"
+              - name: datetime
+                value: "2024"
+        - name: process-id
+          depends: generate-ids.Succeeded
+          template: process-item
+          arguments:
+            parameters:
+            - name: id
+              value: "{{item.s2_id}}"
+          withParam: "{{ tasks.generate-ids.outputs.result }}"
+  - name: generate
+    inputs:
+      parameters:
+      - name: cell
+      - name: datetime
+    container:
+      image: "ghcr.io/digitalearthpacific/dep-wofs:{{ workflow.parameters.image-tag }}"
+      imagePullPolicy: IfNotPresent
+      resources:
+        requests: 
+          memory: 100Mi
+          cpu: 1.0
+      command: [ python ]
+      args:
+        - dep_s2_clouds/main.py
+        - print-ids
+        - --cell
+        - "{{ inputs.parameters.datetime }}"
+        - --datetime
+        - "{{ inputs.parameters.datetime }}"
+  - name: process
+    inputs:
+      parameters:
+      - name: id
+    container:
+      image: "ghcr.io/digitalearthpacific/dep-wofs:{{ workflow.parameters.image-tag }}"
+      imagePullPolicy: IfNotPresent
+      resources:
+        requests: 
+          memory: 4Gi
+          cpu: 2.0
+          gpu: 1.0
+        limits:
+          cpu: 6.0
+          gpu: 1.0
+          memory: 15Gi
+      command: [ python ]
+      args:
+        - dep_s2_clouds/main.py
+        - process-s2-mask
+        - --id
+        - "{{ inputs.parameters.s2_id }}"
