@@ -151,7 +151,6 @@ class ItemStacTask(Task):
 
         output_data = copy_stac_properties(item, self.processor.process(input_data))
 
-        breakpoint()
         if self.post_processor is not None:
             output_data = self.post_processor.process(output_data)
 
