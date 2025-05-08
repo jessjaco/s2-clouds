@@ -110,10 +110,14 @@ def print_ids(
 
 
 def copy_stac_properties(item, ds):
-    ds.attrs["stac_properties"] = {
-        **ds.attrs["stac_properties"],
-        **item.properties,
-    }
+    if "stac_properties" in ds.attrs:
+        ds.attrs["stac_properties"] = {
+            **ds.attrs.get("stac_properties"),
+            **item.properties,
+        }
+    else:
+        ds.attrs["stac_properties"] = item.properties
+
     ds.attrs["stac_properties"]["start_datetime"] = ds.attrs["stac_properties"][
         "datetime"
     ]
@@ -147,6 +151,7 @@ class ItemStacTask(Task):
 
         output_data = copy_stac_properties(item, self.processor.process(input_data))
 
+        breakpoint()
         if self.post_processor is not None:
             output_data = self.post_processor.process(output_data)
 
@@ -160,5 +165,5 @@ class ItemStacTask(Task):
 
 
 if __name__ == "__main__":
-    # process_s2_mask("S2A_T60KXF_20210503T221937_L2A")
-    app()
+    process_s2_mask("S2A_T60KXF_20210503T221937_L2A")
+    # app()
