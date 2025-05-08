@@ -47,7 +47,7 @@ class OCMProcessor(Processor):
         )
         mask_xr = xr.zeros_like(ds.red.astype("uint8"))
         mask_xr.values = mask
-        return mask_xr
+        return mask_xr.to_dataset(name="mask")
 
 
 @app.command()
@@ -164,5 +164,5 @@ class ItemStacTask(Task):
 
 
 if __name__ == "__main__":
-    process_s2_mask("S2A_T60KXF_20210503T221937_L2A")
-    # app()
+    # process_s2_mask("S2A_T60KXF_20210503T221937_L2A")
+    app()
