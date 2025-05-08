@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 from logging import getLogger, Logger
 from pathlib import Path
@@ -39,15 +40,26 @@ class OCMProcessor(Processor):
         self._kwargs = kwargs
 
     def process(self, ds):
-        mask = predict_from_array(
-            ds.squeeze().to_array().values,
-            batch_size=self._batch_size,
-            inference_dtype=self._inference_dtype,
-            **self._kwargs,
-        )
+        #        mask = predict_from_array(
+        #            ds.squeeze().to_array().values,
+        #            batch_size=self._batch_size,
+        #            inference_dtype=self._inference_dtype,
+        #            **self._kwargs,
+        #        )
         mask_xr = xr.zeros_like(ds.red.astype("uint8"))
-        mask_xr.values = mask
+        #        mask_xr.values = mask
         return mask_xr.to_dataset(name="mask")
+
+
+class DailyItemPath(S3ItemPath):
+    def __init__(self, time: datetime | None = None, **kwargs):
+        super().__init__(time=time, **kwargs)
+
+    def _folder(self, item_id) -> str:
+        return f"{self._folder_prefix}/{self._format_item_id(item_id)}/{self.time:%Y/%m/%d}"
+
+    def basename(self, item_id) -> str:
+        return f"{self.item_prefix}_{self._format_item_id(item_id, join_str='_')}_{self.time:%Y-%m-%d}"
 
 
 @app.command()
@@ -56,7 +68,7 @@ def process_s2_mask(s2_id: Annotated[str, typer.Option()]):
     item = Item.from_file(
         f"https://earth-search.aws.element84.com/v1/collections/sentinel-2-c1-l2a/items/{s2_id}"
     )
-    itempath = S3ItemPath(
+    itempath = DailyItemPath(
         bucket=BUCKET,
         sensor="s2",
         dataset_id=DATASET_ID,
