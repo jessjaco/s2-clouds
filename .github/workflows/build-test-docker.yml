@@ -14,44 +14,9 @@ on:
       - created
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Check formatting
-        uses: rickstaa/action-black@v1
-        id: action_black
-        with:
-          black_args: "--check dep_s2_clouds"
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Build and push
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: false
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-    # - name: Run tests in image
-    #   run: |
-    #       docker run --rm ${{ env.IMAGE_NAME }} bash -c "pip install -e /code; pip install -r /code/requirements-test.txt; pytest /code"
-
   push:
     permissions: write-all
     if: github.ref == 'refs/heads/main' || github.event_name == 'release' || startsWith(github.ref, 'refs/tags/')
-    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

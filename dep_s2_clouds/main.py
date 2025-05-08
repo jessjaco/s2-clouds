@@ -3,6 +3,7 @@ from logging import getLogger, Logger
 from pathlib import Path
 import sys
 import traceback
+from typing import Annotated
 import warnings
 
 import boto3
@@ -12,6 +13,7 @@ from dep_tools.namers import S3ItemPath
 from dep_tools.processors import Processor
 from dep_tools.stac_utils import StacCreator
 from dep_tools.task import Task
+from dep_tools.utils import search_across_180
 from dep_tools.writers import AwsStacWriter, Writer, AwsDsCogWriter
 from omnicloudmask import predict_from_array
 from odc.stac import configure_s3_access
@@ -19,6 +21,8 @@ from pystac import Item
 import pystac_client
 import typer
 import xarray as xr
+
+from dep_s2_clouds.grid import s2_grid
 
 
 BUCKET = "dep-public-staging"
@@ -46,8 +50,9 @@ class OCMProcessor(Processor):
         return mask_xr
 
 
-@app.command
-def process_s2_mask(s2_id):
+@app.command()
+def process_s2_mask(s2_id: Annotated[str, typer.Option()]):
+    configure_s3_access(cloud_defaults=True, requester_pays=True)
     item = Item.from_file(
         f"https://earth-search.aws.element84.com/v1/collections/sentinel-2-c1-l2a/items/{s2_id}"
     )
@@ -86,18 +91,20 @@ def process_s2_mask(s2_id):
                 client=boto3_client,
             )
 
-    pass
 
-
-@app.command
-def print_ids(s2_cell, datetime):
+@app.command()
+def print_ids(
+    s2_cell: Annotated[str, typer.Option()], datetime: Annotated[str, typer.Option()]
+):
     configure_s3_access(cloud_defaults=True, requester_pays=True)
     client = pystac_client.Client.open("https://earth-search.aws.element84.com/v1")
-    items = client.search(
+    items = search_across_180(
+        region=s2_grid.loc[[s2_cell]],
+        client=client,
         collections=["sentinel-2-c1-l2a"],
         query={"grid:code": f"MGRS-{s2_cell}"},
         datetime=datetime,
-    ).items()
+    )
     item_ids = [{"s2_id": item.id} for item in items]
     json.dump(item_ids, sys.stdout)
 
@@ -153,5 +160,5 @@ class ItemStacTask(Task):
 
 
 if __name__ == "__main__":
-    process_s2_mask("S2A_T60KXF_20210503T221937_L2A")
-    # app()
+    # process_s2_mask("S2A_T60KXF_20210503T221937_L2A")
+    app()

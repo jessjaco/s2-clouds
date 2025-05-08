@@ -4,11 +4,11 @@ metadata:
   namespace: argo
 spec:
   entrypoint: loop-map-ocm
-  serviceAccountName: open-data-bucket-writer
+  serviceAccountName: public-bucket-writer
   podGC:
     strategy: OnPodSuccess
     deleteDelayDuration: 600s
-  parallelism: 100
+  parallelism: 5
   activeDeadlineSeconds: 36000 
   tolerations:
   - key: digitalearthpacific.org/node-purpose
@@ -18,7 +18,7 @@ spec:
   arguments:
     parameters:
     - name: image-tag
-      value: "0.1.0dev1"
+      value: "ec5bed4"
   templates:
   - name: loop-map-ocm
     retryStrategy:
@@ -48,7 +48,7 @@ spec:
       - name: cell
       - name: datetime
     container:
-      image: "ghcr.io/digitalearthpacific/dep-wofs:{{ workflow.parameters.image-tag }}"
+      image: "ghcr.io/jessjaco/s2-clouds:{{ workflow.parameters.image-tag }}"
       imagePullPolicy: IfNotPresent
       resources:
         requests: 
@@ -58,29 +58,29 @@ spec:
       args:
         - dep_s2_clouds/main.py
         - print-ids
-        - --cell
-        - "{{ inputs.parameters.datetime }}"
+        - --s2-cell
+        - "{{ inputs.parameters.cell }}"
         - --datetime
         - "{{ inputs.parameters.datetime }}"
-  - name: process
+  - name: process-item
     inputs:
       parameters:
       - name: id
     container:
-      image: "ghcr.io/digitalearthpacific/dep-wofs:{{ workflow.parameters.image-tag }}"
+      image: "ghcr.io/jessjaco/s2-clouds:{{ workflow.parameters.image-tag }}"
       imagePullPolicy: IfNotPresent
       resources:
         requests: 
           memory: 4Gi
           cpu: 2.0
-          gpu: 1.0
+          nvidia.com/gpu: 1.0
         limits:
           cpu: 6.0
-          gpu: 1.0
+          nvidia.com/gpu: 1.0
           memory: 15Gi
       command: [ python ]
       args:
         - dep_s2_clouds/main.py
         - process-s2-mask
-        - --id
-        - "{{ inputs.parameters.s2_id }}"
+        - --s2-id
+        - "{{ inputs.parameters.id }}"
