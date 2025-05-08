@@ -75,9 +75,13 @@ jobs:
       - name: Get version number for tagging the image
         id: get_version
         run: |
-          git fetch --all --tags
-          echo "VERSION=$(git describe --tags --always)" >> $GITHUB_OUTPUT
-
+          git fetch --tags
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+          else
+            VERSION=$(git describe --tags --abbrev=0 || echo "dev-${GITHUB_SHA::7}")
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
       - name: Build and push
         uses: docker/build-push-action@v4
         with:
