@@ -177,5 +177,5 @@ class ItemStacTask(Task):
 
 
 if __name__ == "__main__":
-    process_s2_mask("S2A_T60KXF_20210503T221937_L2A")
-    # app()
+    # process_s2_mask("S2A_T60KXF_20210503T221937_L2A")
+    app()
