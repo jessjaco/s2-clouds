@@ -55,7 +55,8 @@ class OCMProcessor(Processor):
         self._kwargs = kwargs
 
     def process(self, ds):
-        mask = predict_from_array(
+        mask_xr = xr.zeros_like(ds.red.astype("uint8").drop_attrs())
+        mask_xr.values = predict_from_array(
             ds.squeeze().to_array().values,
             batch_size=self._batch_size,
             inference_dtype=self._inference_dtype,
@@ -63,8 +64,6 @@ class OCMProcessor(Processor):
             model_download_source="hugging_face",
             **self._kwargs,
         )
-        mask_xr = xr.zeros_like(ds.red.astype("uint8"))
-        mask_xr.values = mask
         return mask_xr.to_dataset(name="mask")
 
 
@@ -134,7 +133,7 @@ def process_ids(
 def ids(
     s2_cell: Annotated[str, typer.Option()],
     datetime: Annotated[str, typer.Option()],
-    output_json: Annotated[str, typer.Option(parser=bool_parser)] = "False",
+    output_json: Annotated[str, typer.Option(parser=bool_parser)] = False,
 ) -> list | None:
     client = pystac_client.Client.open("https://earth-search.aws.element84.com/v1")
     items = search_across_180(
