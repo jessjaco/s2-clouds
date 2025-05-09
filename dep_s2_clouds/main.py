@@ -123,7 +123,9 @@ def process_s2_mask(s2_id: Annotated[str, typer.Option()]):
 
 
 @app.command()
-def process_ids(s2_cell, datetime):
+def process_ids(
+    s2_cell: Annotated[str, typer.Option()], datetime: Annotated[str, typer.Option()]
+):
     for s2_id in ids(s2_cell, datetime):
         process_s2_mask(s2_id)
 
