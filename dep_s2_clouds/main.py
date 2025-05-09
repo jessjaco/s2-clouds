@@ -51,7 +51,7 @@ class OCMProcessor(Processor):
         return mask_xr.to_dataset(name="mask")
 
 
-class DailyItemPath(S3ItemPath):
+class S2DailyItemPath(S3ItemPath):
     def __init__(self, time: datetime | None = None, **kwargs):
         super().__init__(time=time, **kwargs)
 
@@ -68,14 +68,15 @@ def process_s2_mask(s2_id: Annotated[str, typer.Option()]):
     item = Item.from_file(
         f"https://earth-search.aws.element84.com/v1/collections/sentinel-2-c1-l2a/items/{s2_id}"
     )
-    itempath = DailyItemPath(
+    tile_id = item.properties["grid:code"][-5:]
+    itempath = S2DailyItemPath(
         bucket=BUCKET,
         sensor="s2",
         dataset_id=DATASET_ID,
         version=VERSION,
         time=item.get_datetime(),
     )
-    if not object_exists(bucket=BUCKET, key=itempath.stac_path(s2_id)):
+    if not object_exists(bucket=BUCKET, key=itempath.stac_path(tile_id)):
         try:
             loader = OdcLoader(
                 dtype="uint16",
@@ -83,7 +84,7 @@ def process_s2_mask(s2_id: Annotated[str, typer.Option()]):
                 anchor="center",
             )
             return ItemStacTask(
-                id=s2_id,
+                id=tile_id,
                 loader=loader,
                 processor=OCMProcessor(),
                 writer=AwsDsCogWriter(itempath),
@@ -114,7 +115,7 @@ def print_ids(
         region=s2_grid.loc[[s2_cell]],
         client=client,
         collections=["sentinel-2-c1-l2a"],
-        query={"grid:code": f"MGRS-{s2_cell}"},
+        query={"grid:code": {"eq": f"MGRS-{s2_cell}"}},
         datetime=datetime,
     )
     item_ids = [{"s2_id": item.id} for item in items]
@@ -176,5 +177,5 @@ class ItemStacTask(Task):
 
 
 if __name__ == "__main__":
-    # process_s2_mask("S2A_T60KXF_20210503T221937_L2A")
-    app()
+    process_s2_mask("S2A_T60KXF_20210503T221937_L2A")
+    # app()
