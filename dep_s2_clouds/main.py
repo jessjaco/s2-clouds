@@ -1,4 +1,6 @@
+from concurrent.futures import process
 from datetime import datetime
+from itertools import product
 import json
 from logging import getLogger, Logger
 from pathlib import Path
@@ -33,6 +35,19 @@ VERSION = "0.1.0"
 app = typer.Typer()
 
 
+def parse_datetime(datetime):
+    years = datetime.split("_")
+    if len(years) == 2:
+        years = range(int(years[0]), int(years[1]) + 1)
+    elif len(years) > 2:
+        ValueError(f"{datetime} is not a valid value for --datetime")
+    return years
+
+
+def bool_parser(raw: str):
+    return False if raw == "False" else True
+
+
 class OCMProcessor(Processor):
     def __init__(self, batch_size=5, inference_dtype="bf16", **kwargs):
         self._batch_size = batch_size
@@ -44,6 +59,8 @@ class OCMProcessor(Processor):
             ds.squeeze().to_array().values,
             batch_size=self._batch_size,
             inference_dtype=self._inference_dtype,
+            # gdrive links have daily limits on download
+            model_download_source="hugging_face",
             **self._kwargs,
         )
         mask_xr = xr.zeros_like(ds.red.astype("uint8"))
@@ -106,10 +123,17 @@ def process_s2_mask(s2_id: Annotated[str, typer.Option()]):
 
 
 @app.command()
-def print_ids(
-    s2_cell: Annotated[str, typer.Option()], datetime: Annotated[str, typer.Option()]
-):
-    configure_s3_access(cloud_defaults=True, requester_pays=True)
+def process_ids(s2_cell, datetime):
+    for s2_id in ids(s2_cell, datetime):
+        process_s2_mask(s2_id)
+
+
+@app.command()
+def ids(
+    s2_cell: Annotated[str, typer.Option()],
+    datetime: Annotated[str, typer.Option()],
+    output_json: Annotated[str, typer.Option(parser=bool_parser)] = "False",
+) -> list | None:
     client = pystac_client.Client.open("https://earth-search.aws.element84.com/v1")
     items = search_across_180(
         region=s2_grid.loc[[s2_cell]],
@@ -118,8 +142,17 @@ def print_ids(
         query={"grid:code": {"eq": f"MGRS-{s2_cell}"}},
         datetime=datetime,
     )
-    item_ids = [{"s2_id": item.id} for item in items]
-    json.dump(item_ids, sys.stdout)
+    ids = [item.id for item in items]
+    return json.dump(ids, sys.stdout) if output_json else ids
+
+
+@app.command()
+def cells_and_years(datetime: Annotated[str, typer.Option(parser=parse_datetime)]):
+    output = [
+        dict(s2_cell=cell, datetime=year)
+        for cell, year in product(s2_grid.index, datetime)
+    ]
+    json.dump(output, sys.stdout)
 
 
 def copy_stac_properties(item, ds):
@@ -177,5 +210,6 @@ class ItemStacTask(Task):
 
 
 if __name__ == "__main__":
+    configure_s3_access(cloud_defaults=True, requester_pays=True)
     # process_s2_mask("S2A_T60KXF_20210503T221937_L2A")
     app()
