@@ -40,14 +40,14 @@ class OCMProcessor(Processor):
         self._kwargs = kwargs
 
     def process(self, ds):
-        #        mask = predict_from_array(
-        #            ds.squeeze().to_array().values,
-        #            batch_size=self._batch_size,
-        #            inference_dtype=self._inference_dtype,
-        #            **self._kwargs,
-        #        )
+        mask = predict_from_array(
+            ds.squeeze().to_array().values,
+            batch_size=self._batch_size,
+            inference_dtype=self._inference_dtype,
+            **self._kwargs,
+        )
         mask_xr = xr.zeros_like(ds.red.astype("uint8"))
-        #        mask_xr.values = mask
+        mask_xr.values = mask
         return mask_xr.to_dataset(name="mask")
 
 
