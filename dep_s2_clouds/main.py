@@ -3,6 +3,7 @@ from datetime import datetime
 from itertools import product
 import json
 from logging import getLogger, Logger
+import os
 from pathlib import Path
 import sys
 import traceback
@@ -31,6 +32,8 @@ from dep_s2_clouds.grid import s2_grid
 BUCKET = "dep-public-staging"
 DATASET_ID = "ocm"
 VERSION = "0.1.0"
+BATCH_SIZE = os.environ.get("DEP_BATCH_SIZE", 5)
+
 
 app = typer.Typer()
 
@@ -49,7 +52,7 @@ def bool_parser(raw: str):
 
 
 class OCMProcessor(Processor):
-    def __init__(self, batch_size=5, inference_dtype="bf16", **kwargs):
+    def __init__(self, batch_size=BATCH_SIZE, inference_dtype="bf16", **kwargs):
         self._batch_size = batch_size
         self._inference_dtype = inference_dtype
         self._kwargs = kwargs
