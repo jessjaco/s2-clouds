@@ -32,7 +32,7 @@ from dep_s2_clouds.grid import s2_grid
 BUCKET = "dep-public-staging"
 DATASET_ID = "ocm"
 VERSION = "0.1.0"
-BATCH_SIZE = os.environ.get("DEP_BATCH_SIZE", 5)
+BATCH_SIZE = int(os.environ.get("DEP_BATCH_SIZE", 5))
 
 
 app = typer.Typer()
