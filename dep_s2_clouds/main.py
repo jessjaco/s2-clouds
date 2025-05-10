@@ -58,7 +58,9 @@ class OCMProcessor(Processor):
         self._kwargs = kwargs
 
     def process(self, ds):
-        mask_xr = xr.zeros_like(ds.red.astype("uint8").drop_attrs())
+        mask_xr = xr.zeros_like(ds.red.astype("uint8").drop_attrs()).rio.write_crs(
+            ds.red.crs
+        )
         mask_xr.values = predict_from_array(
             ds.squeeze().to_array().values,
             batch_size=self._batch_size,
