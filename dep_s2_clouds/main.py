@@ -11,6 +11,7 @@ from typing import Annotated
 import warnings
 
 import boto3
+from cloud_logger import CsvLogger, filter_by_log, S3Handler
 from dep_tools.aws import object_exists, s3_dump
 from dep_tools.loaders import OdcLoader, StacLoader
 from dep_tools.namers import S3ItemPath
@@ -144,7 +145,7 @@ def ids(
     items = search_across_180(
         region=s2_grid.loc[[s2_cell]],
         client=client,
-        collections=["sentinel-2-c1-l2a"],
+        collections=["sentinel-2-l2a"],
         query={"grid:code": {"eq": f"MGRS-{s2_cell}"}},
         datetime=datetime,
     )
@@ -154,10 +155,28 @@ def ids(
 
 @app.command()
 def cells_and_years(datetime: Annotated[str, typer.Option(parser=parse_datetime)]):
-    output = [
-        dict(s2_cell=cell, datetime=year)
-        for cell, year in product(s2_grid.index, datetime)
-    ]
+    output = []
+    for year in datetime:
+        itempath = S3ItemPath(
+            bucket=BUCKET,
+            sensor="s2",
+            dataset_id=DATASET_ID,
+            version=VERSION,
+            time=str(year).replace("/", "_"),
+        )
+        logger = CsvLogger(
+            name="ocm",
+            path=f"{itempath.bucket}/{itempath.log_path()}",
+            overwrite=False,
+            header="time|index|status|paths|comment\n",
+            cloud_handler=S3Handler,
+        )
+
+        grid_subset = filter_by_log(s2_grid, logger.parse_log(), retry_errors=False)
+        output += [
+            dict(s2_cell=cell, datetime=year)
+            for cell, year in product(grid_subset.index, datetime)
+        ]
     json.dump(output, sys.stdout)
 
 
