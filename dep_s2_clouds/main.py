@@ -151,6 +151,7 @@ def process_ids(
         paths = [process_s2_mask(s2_id) for s2_id in ids(s2_cell, datetime)]
     except Exception as e:
         logger.error([s2_cell, "error", [], f'"{e}"'])
+        raise e
 
     logger.info([s2_cell, "complete", paths])
 
@@ -192,7 +193,9 @@ def cells_and_years(datetime: Annotated[str, typer.Option(parser=parse_datetime)
             cloud_handler=S3Handler,
         )
 
-        grid_subset = filter_by_log(s2_grid, logger.parse_log(), retry_errors=False)
+        grid_subset = filter_by_log(
+            s2_grid, logger.parse_log(), retry_errors=False, parse_index=False
+        )
         output += [
             dict(s2_cell=cell, datetime=year)
             for cell, year in product(grid_subset.index, datetime)
