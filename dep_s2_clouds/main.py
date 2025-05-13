@@ -254,5 +254,5 @@ class ItemStacTask(Task):
 
 if __name__ == "__main__":
     configure_s3_access(cloud_defaults=True, requester_pays=True)
-    process_s2_mask("S2B_59WNV_20250513_0_L2A")
-    # app()
+    # process_s2_mask("S2B_59WNV_20250513_0_L2A")
+    app()
