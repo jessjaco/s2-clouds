@@ -125,6 +125,8 @@ def process_s2_mask(s2_id: Annotated[str, typer.Option()]):
                 key=str(daily_log_path),
                 client=boto3_client,
             )
+    else:
+        return []
 
 
 @app.command()
@@ -148,9 +150,9 @@ def process_ids(
     try:
         paths = [process_s2_mask(s2_id) for s2_id in ids(s2_cell, datetime)]
     except Exception as e:
-        logger.error([id, "error", [], f'"{e}"'])
+        logger.error([s2_cell, "error", [], f'"{e}"'])
 
-    logger.info([id, "complete", paths])
+    logger.info([s2_cell, "complete", paths])
 
 
 @app.command()
