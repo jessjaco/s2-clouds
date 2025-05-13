@@ -88,7 +88,7 @@ class S2DailyItemPath(S3ItemPath):
 def process_s2_mask(s2_id: Annotated[str, typer.Option()]):
     configure_s3_access(cloud_defaults=True, requester_pays=True)
     item = Item.from_file(
-        f"https://earth-search.aws.element84.com/v1/collections/sentinel-2-c1-l2a/items/{s2_id}"
+        f"https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/{s2_id}"
     )
     tile_id = item.properties["grid:code"][-5:]
     itempath = S2DailyItemPath(
@@ -131,8 +131,26 @@ def process_s2_mask(s2_id: Annotated[str, typer.Option()]):
 def process_ids(
     s2_cell: Annotated[str, typer.Option()], datetime: Annotated[str, typer.Option()]
 ):
-    for s2_id in ids(s2_cell, datetime):
-        process_s2_mask(s2_id)
+    itempath = S3ItemPath(
+        bucket=BUCKET,
+        sensor="s2",
+        dataset_id=DATASET_ID,
+        version=VERSION,
+        time=str(datetime).replace("/", "_"),
+    )
+    logger = CsvLogger(
+        name="ocm",
+        path=f"{itempath.bucket}/{itempath.log_path()}",
+        overwrite=False,
+        header="time|index|status|paths|comment\n",
+        cloud_handler=S3Handler,
+    )
+    try:
+        paths = [process_s2_mask(s2_id) for s2_id in ids(s2_cell, datetime)]
+    except Exception as e:
+        logger.error([id, "error", [], f'"{e}"'])
+
+    logger.info([id, "complete", paths])
 
 
 @app.command()
@@ -236,5 +254,5 @@ class ItemStacTask(Task):
 
 if __name__ == "__main__":
     configure_s3_access(cloud_defaults=True, requester_pays=True)
-    # process_s2_mask("S2A_T60KXF_20210503T221937_L2A")
-    app()
+    process_s2_mask("S2B_59WNV_20250513_0_L2A")
+    # app()
