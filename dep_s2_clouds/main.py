@@ -175,7 +175,23 @@ def ids(
 
 
 @app.command()
-def cells_and_years(datetime: Annotated[str, typer.Option(parser=parse_datetime)]):
+def cells_and_years(
+    datetime: Annotated[str, typer.Option(parser=parse_datetime)],
+    select_tiles_only: Annotated[str, typer.Option(parser=bool_parser)] = "False",
+):
+    select_tiles = [
+        "01KFS",
+        "54LYR",
+        "55MEM",
+        "57LXK",
+        "57NVH",
+        "58KEB",
+        "58KHF",
+        "59NQB",
+        "60KXF",
+        "60LYR",
+    ]
+    grid = s2_grid.loc[select_tiles] if select_tiles_only else s2_grid
     output = []
     for year in datetime:
         itempath = S3ItemPath(
@@ -194,7 +210,7 @@ def cells_and_years(datetime: Annotated[str, typer.Option(parser=parse_datetime)
         )
 
         grid_subset = filter_by_log(
-            s2_grid, logger.parse_log(), retry_errors=False, parse_index=False
+            grid, logger.parse_log(), retry_errors=False, parse_index=False
         )
         output += [
             dict(s2_cell=cell, datetime=year)
