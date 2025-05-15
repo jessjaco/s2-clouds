@@ -167,7 +167,7 @@ def ids(
         region=s2_grid.loc[[s2_cell]],
         client=client,
         collections=["sentinel-2-l2a"],
-        query={"grid:code": {"eq": f"MGRS-{s2_cell}"}},
+        query={"grid:code": {"eq": f"MGRS-{s2_cell.lstrip('0')}"}},
         datetime=datetime,
     )
     ids = [item.id for item in items]
