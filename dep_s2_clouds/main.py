@@ -5,6 +5,7 @@ import json
 from logging import getLogger, Logger
 import os
 from pathlib import Path
+import re
 import sys
 import traceback
 from typing import Annotated
@@ -90,7 +91,8 @@ def process_s2_mask(s2_id: Annotated[str, typer.Option()]):
     item = Item.from_file(
         f"https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/{s2_id}"
     )
-    tile_id = item.properties["grid:code"][-5:]
+    # no leading zeroes on 0-9 tile ids in stac item
+    tile_id = re.sub(r"-(\w{4})$", r"0\1", item.properties["grid:code"][-5:])
     itempath = S2DailyItemPath(
         bucket=BUCKET,
         sensor="s2",
