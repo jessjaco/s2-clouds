@@ -212,10 +212,7 @@ def cells_and_years(
         grid_subset = filter_by_log(
             grid, logger.parse_log(), retry_errors=False, parse_index=False
         )
-        output += [
-            dict(s2_cell=cell, datetime=year)
-            for cell, year in product(grid_subset.index, datetime)
-        ]
+        output += [dict(s2_cell=cell, datetime=year) for cell in grid_subset.index]
     json.dump(output, sys.stdout)
 
 
