@@ -182,8 +182,16 @@ def cells_and_years(
     select_tiles_only: Annotated[str, typer.Option(parser=bool_parser)] = "False",
 ):
     select_tiles = [
-        "01KFS",
+        "59NLG",
+        "56MKU",
+        "01KGU",
+        "07LFL",
+        "01KHV",
+        "56MQU",
+        "60KWF",
+        "59NLG",
         "54LYR",
+        "01KFS",
         "55MEM",
         "57LXK",
         "57NVH",
